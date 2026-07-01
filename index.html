@@ -56,7 +56,7 @@
         const res = document.getElementById('results');
         if (!user) { alert("أدخل اليوزر أولاً"); return; }
         
-        res.innerHTML = '<p class="text-center">جاري البحث عن طلباتك...</p>';
+        res.innerHTML = '<p class="text-center">جاري البحث...</p>';
 
         try {
             const response = await fetch('data.csv');
@@ -64,11 +64,8 @@
             const rows = text.split(/\r?\n/);
             let html = '';
 
-            // البدء من الصف الثاني لتخطي العناوين
             for (let i = 1; i < rows.length; i++) {
                 if (!rows[i].trim()) continue;
-                
-                // تقسيم الصف مع مراعاة النصوص التي قد تحتوي على فواصل
                 const cols = rows[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
                 
                 if (cols && cols[0].replace(/"/g, '').trim().toLowerCase() === user.toLowerCase()) {
@@ -77,31 +74,44 @@
                     const price = cols[3] || '0';
                     const currency = cols[4] || '';
                     const date = cols[5] ? cols[5].replace(/"/g, '') : '-';
-                    const status = cols[6] ? cols[6].trim() : 'Pending';
+                    const statusRaw = cols[6] ? cols[6].trim() : 'Pending';
                     
+                    let statusText = "قيد الشحن / الانتظار";
+                    let statusClass = "text-yellow-500";
+                    if (statusRaw === 'Delivered') {
+                        statusText = "تم التوصيل";
+                        statusClass = "text-green-500";
+                    }
+
                     html += `
-                        <div class="glass p-5 rounded-2xl border border-neutral-800">
-                            <div class="grid grid-cols-2 gap-4 text-sm">
-                                <div><span class="text-neutral-500">الطلب:</span><br><span class="font-bold">${article}</span></div>
-                                <div><span class="text-neutral-500">السعر:</span><br><span class="font-bold">${price} ${currency}</span></div>
-                                <div class="col-span-2"><span class="text-neutral-500">التاريخ:</span><br><span class="font-bold">${date}</span></div>
-                                <div class="col-span-2"><span class="text-neutral-500">الايدي/النص:</span><br><span class="font-bold">${message}</span></div>
-                                <div class="col-span-2"><span class="text-neutral-500">الحالة:</span><br>
-                                    <span class="${status === 'Pending' ? 'text-yellow-500' : 'text-green-500'} font-bold">${status}</span>
-                                </div>
-                            </div>
-                            <div class="mt-4 flex gap-2">
-                                ${status === 'Pending' ? `
-                                    <button onclick="handleAction('استعجال', '${article}')" class="flex-1 bg-blue-900 py-2 rounded-lg text-xs">استعجال</button>
-                                    <button onclick="handleAction('إلغاء', '${article}')" class="flex-1 bg-red-900 py-2 rounded-lg text-xs">إلغاء</button>
-                                ` : `<button onclick="handleAction('تقييم', '${article}')" class="w-full bg-purple-900 py-2 rounded-lg text-xs">⭐ تقييم</button>`}
-                            </div>
-                        </div>`;
+                    <div class="glass p-5 rounded-2xl border border-neutral-800 space-y-3">
+                        <div class="flex flex-col gap-1 border-b border-neutral-800 pb-2">
+                            <span class="text-neutral-500 text-xs">الطلب</span>
+                            <span class="font-bold text-lg">${article}</span>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-neutral-500 text-xs">الايدي / النص</span>
+                            <span class="font-bold">${message}</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <div><span class="text-neutral-500">السعر:</span> ${price} ${currency}</div>
+                            <div><span class="text-neutral-500">التاريخ:</span> ${date}</div>
+                        </div>
+                        <div class="pt-2">
+                            <span class="text-neutral-500 text-xs">حالة الطلب</span>
+                            <div class="${statusClass} font-bold text-lg">● ${statusText}</div>
+                        </div>
+                        <div class="mt-4">
+                            ${statusRaw === 'Pending' ? `
+                                <button onclick="handleAction('استعجال', '${article}')" class="w-full bg-blue-900 py-2 rounded-lg text-xs">استعجال الطلب</button>
+                            ` : `<button onclick="handleAction('تقييم', '${article}')" class="w-full bg-purple-900 py-2 rounded-lg text-xs">⭐ تقييم التجربة</button>`}
+                        </div>
+                    </div>`;
                 }
             }
             res.innerHTML = html || '<p class="text-center text-red-500">لا توجد طلبات لهذا اليوزر.</p>';
         } catch (e) {
-            res.innerHTML = '<p class="text-center text-red-500">خطأ في قراءة ملف البيانات. تأكد من تشغيل السيرفر.</p>';
+            res.innerHTML = '<p class="text-center text-red-500">خطأ في قراءة ملف البيانات.</p>';
         }
     }
 
@@ -109,7 +119,6 @@
         document.getElementById('modalTitle').innerText = 'تأكيد ' + type;
         document.getElementById('modalDesc').innerText = "يرجى كتابة التفاصيل إذا رغبت:";
         document.getElementById('actionModal').style.display = 'flex';
-        
         document.getElementById('confirmBtn').onclick = () => {
             const note = document.getElementById('modalNote').value;
             sendDiscord(type, order, note);
