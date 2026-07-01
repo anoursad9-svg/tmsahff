@@ -75,7 +75,6 @@
                     const date = cols[5]?.replace(/"/g, '') || '-';
                     const statusRaw = cols[6]?.trim();
                     const status = statusRaw === 'Delivered' ? '✅ تم التوصيل' : '⏳ قيد الشحن';
-                    // معرف فريد للطلب يعتمد على الاسم والطلب
                     const orderId = btoa(userInRow + article + index);
 
                     html += `
@@ -128,8 +127,10 @@
                 if (type === 'إلغاء') localStorage.setItem('cancelled_' + orderId, 'true');
                 if (type === 'استعجال') localStorage.setItem('rush_' + orderId, Date.now());
                 alert("تم إرسال طلب " + type + " للإدارة بنجاح!");
+            } else {
+                alert("حدث خطأ أثناء الإرسال (تأكد من الويب هوك)");
             }
-        } catch (e) { alert("حدث خطأ أثناء الإرسال"); }
+        } catch (e) { alert("حدث خطأ في الاتصال"); }
     }
 </script>
 </body>
