@@ -2,42 +2,38 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;700;900&display=swap');
-        body { font-family: 'Cairo', sans-serif; background: #050505; color: white; }
-        .glass { background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(20px); border: 1px solid #333; }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .btn-hover:hover { transform: scale(1.02); }
+        body { background-color: #050505; color: #fff; font-family: 'Segoe UI', sans-serif; }
+        .glass { background: rgba(20, 20, 20, 0.9); border: 1px solid #333; backdrop-filter: blur(10px); }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body class="p-6">
 
 <div class="max-w-4xl mx-auto">
-    <!-- Header -->
-    <div class="glass p-6 rounded-3xl mb-8 text-center border-b-4 border-pink-600">
-        <h1 class="text-4xl font-black text-white">TMSAHFF STORE</h1>
-        <p class="text-neutral-500 mt-2">تتبع طلباتك لحظة بلحظة</p>
+    <div class="glass p-8 rounded-3xl mb-8 text-center border-b-4 border-pink-600">
+        <h1 class="text-4xl font-black">TMSAHFF STORE</h1>
+        <p class="text-neutral-500 mt-2">مركز تتبع الطلبات الذكي</p>
     </div>
 
-    <!-- Search Box -->
-    <div class="glass p-2 rounded-2xl flex gap-2 mb-8">
-        <input type="text" id="userInput" placeholder="أدخل اليوزر للبحث..." class="flex-1 bg-transparent p-4 outline-none text-white placeholder-neutral-600">
-        <button onclick="search()" class="bg-pink-600 px-8 rounded-xl font-bold hover:bg-pink-700 transition">بحث</button>
+    <div class="flex gap-2 mb-8">
+        <input type="text" id="userInput" placeholder="أدخل اليوزر للبحث..." class="flex-1 bg-neutral-900 p-4 rounded-xl border border-neutral-800 focus:border-pink-500 outline-none">
+        <button onclick="search()" class="bg-pink-600 px-8 rounded-xl font-bold hover:bg-pink-700">بحث</button>
     </div>
 
-    <!-- Results Area -->
     <div id="results" class="space-y-4"></div>
 </div>
 
-<!-- Custom Alert Modal -->
-<div id="customModal" class="modal-overlay flex items-center justify-center">
-    <div class="glass p-8 rounded-3xl w-80 text-center border border-pink-500/30">
-        <div id="modalContent"></div>
-        <button onclick="closeModal()" class="mt-6 w-full py-2 bg-pink-600 rounded-xl font-bold">إغلاق</button>
+<div id="modal" class="modal">
+    <div class="glass p-8 rounded-3xl w-96 text-center border border-pink-500/30">
+        <i class="fas fa-question-circle text-4xl text-pink-500 mb-4"></i>
+        <h2 id="modalTitle" class="text-xl font-bold mb-4">تأكيد الإجراء</h2>
+        <div class="flex gap-2 justify-center">
+            <button onclick="hideModal()" class="px-6 py-2 bg-neutral-800 rounded-xl">إلغاء</button>
+            <button id="confirmBtn" class="px-6 py-2 bg-pink-600 rounded-xl font-bold">تأكيد</button>
+        </div>
     </div>
 </div>
 
@@ -49,46 +45,44 @@
         const resDiv = document.getElementById('results');
         
         try {
-            const response = await fetch('data.csv');
-            const text = await response.text();
-            const rows = text.split('\n');
+            const res = await fetch('data.csv');
+            const data = await res.text();
+            const rows = data.split('\n');
             let html = '';
-            let found = false;
-
-            rows.slice(1).forEach(row => {
+            
+            rows.forEach((row, i) => {
+                if(i === 0 || !row.toLowerCase().includes(user)) return;
+                
+                const isDelivered = row.toLowerCase().includes('delivered');
                 const cols = row.split(',');
-                if(cols[0] && cols[0].trim().toLowerCase().includes(user)) {
-                    found = true;
-                    html += `
-                    <div class="glass p-5 rounded-2xl flex justify-between items-center transition hover:border-pink-500/50">
-                        <div>
-                            <h3 class="font-bold text-xl text-pink-400">${cols[1]}</h3>
-                            <p class="text-xs text-neutral-500">${cols[5] || '00:00'}</p>
-                        </div>
-                        <div class="flex gap-3">
-                            <button onclick="showAlert('تم التقييم', 'شكراً لتقييمك الرائع يا بطل! ⭐')" class="text-yellow-500"><i class="fas fa-star"></i></button>
-                            <button onclick="notify('استعجال', '${cols[1]}')" class="bg-blue-600 px-4 py-2 rounded-lg text-sm font-bold btn-hover">استعجال</button>
-                        </div>
-                    </div>`;
-                }
+                
+                html += `
+                <div class="glass p-5 rounded-2xl flex justify-between items-center hover:border-pink-500/50 transition">
+                    <div>
+                        <h3 class="font-bold text-lg">${cols[1] || 'طلب'}</h3>
+                        <p class="text-xs text-neutral-500">${cols[5] || 'لا يوجد تاريخ'}</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="font-bold ${isDelivered ? 'text-green-500' : 'text-yellow-500'}">
+                            ${isDelivered ? 'تم التوصيل' : 'قيد الشحن'}
+                        </span>
+                        <button onclick="showModal('${cols[1]}')" class="text-sm bg-neutral-800 px-3 py-1 rounded-lg hover:bg-neutral-700">إجراء</button>
+                    </div>
+                </div>`;
             });
-            resDiv.innerHTML = found ? html : '<p class="text-center text-red-500">لا يوجد طلبات لهذا اليوزر</p>';
-        } catch (e) {
-            resDiv.innerHTML = '<p class="text-center text-red-500">خطأ في الاتصال بقاعدة البيانات</p>';
-        }
+            resDiv.innerHTML = html || '<p class="text-center text-red-500">لا يوجد بيانات.</p>';
+        } catch(e) { console.error(e); }
     }
 
-    function showAlert(title, msg) {
-        document.getElementById('modalContent').innerHTML = `<h2 class="text-2xl font-bold mb-2">${title}</h2><p class="text-neutral-400">${msg}</p>`;
-        document.getElementById('customModal').style.display = 'flex';
+    function showModal(order) {
+        document.getElementById('modal').style.display = 'flex';
+        document.getElementById('confirmBtn').onclick = () => {
+            fetch(WEBHOOK, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ content: `طلب: ${order}` }) });
+            hideModal();
+        };
     }
-
-    function closeModal() { document.getElementById('customModal').style.display = 'none'; }
-
-    function notify(type, order) {
-        fetch(WEBHOOK, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ content: `طلب ${type}: ${order}` }) });
-        showAlert('تم بنجاح', 'تم إرسال طلبك للإدارة، شكراً لانتظارك!');
-    }
+    
+    function hideModal() { document.getElementById('modal').style.display = 'none'; }
 </script>
 </body>
 </html>
