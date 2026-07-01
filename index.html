@@ -60,43 +60,48 @@
 
         try {
             const response = await fetch('data.csv');
-            const data = await response.text();
-            const rows = data.split('\n').slice(1);
+            const text = await response.text();
+            const rows = text.split(/\r?\n/);
             let html = '';
 
-            rows.forEach(row => {
-                const cols = row.split(',');
-                if (cols[0] && cols[0].trim().toLowerCase() === user.toLowerCase()) {
-                    const article = cols[1] || '-';
-                    const message = cols[2] || 'لا يوجد';
+            // البدء من الصف الثاني لتخطي العناوين
+            for (let i = 1; i < rows.length; i++) {
+                if (!rows[i].trim()) continue;
+                
+                // تقسيم الصف مع مراعاة النصوص التي قد تحتوي على فواصل
+                const cols = rows[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+                
+                if (cols && cols[0].replace(/"/g, '').trim().toLowerCase() === user.toLowerCase()) {
+                    const article = cols[1] ? cols[1].replace(/"/g, '') : '-';
+                    const message = cols[2] ? cols[2].replace(/"/g, '') : 'لا يوجد';
                     const price = cols[3] || '0';
                     const currency = cols[4] || '';
-                    const date = cols[5] || '-';
-                    const status = cols[6] || 'Pending';
+                    const date = cols[5] ? cols[5].replace(/"/g, '') : '-';
+                    const status = cols[6] ? cols[6].trim() : 'Pending';
                     
                     html += `
                         <div class="glass p-5 rounded-2xl border border-neutral-800">
                             <div class="grid grid-cols-2 gap-4 text-sm">
                                 <div><span class="text-neutral-500">الطلب:</span><br><span class="font-bold">${article}</span></div>
                                 <div><span class="text-neutral-500">السعر:</span><br><span class="font-bold">${price} ${currency}</span></div>
-                                <div><span class="text-neutral-500">التاريخ:</span><br><span class="font-bold">${date}</span></div>
-                                <div><span class="text-neutral-500">الايدي/النص:</span><br><span class="font-bold">${message}</span></div>
+                                <div class="col-span-2"><span class="text-neutral-500">التاريخ:</span><br><span class="font-bold">${date}</span></div>
+                                <div class="col-span-2"><span class="text-neutral-500">الايدي/النص:</span><br><span class="font-bold">${message}</span></div>
                                 <div class="col-span-2"><span class="text-neutral-500">الحالة:</span><br>
-                                    <span class="${status.trim() === 'Pending' ? 'text-yellow-500' : 'text-green-500'} font-bold">${status}</span>
+                                    <span class="${status === 'Pending' ? 'text-yellow-500' : 'text-green-500'} font-bold">${status}</span>
                                 </div>
                             </div>
                             <div class="mt-4 flex gap-2">
-                                ${status.trim() === 'Pending' ? `
+                                ${status === 'Pending' ? `
                                     <button onclick="handleAction('استعجال', '${article}')" class="flex-1 bg-blue-900 py-2 rounded-lg text-xs">استعجال</button>
                                     <button onclick="handleAction('إلغاء', '${article}')" class="flex-1 bg-red-900 py-2 rounded-lg text-xs">إلغاء</button>
                                 ` : `<button onclick="handleAction('تقييم', '${article}')" class="w-full bg-purple-900 py-2 rounded-lg text-xs">⭐ تقييم</button>`}
                             </div>
                         </div>`;
                 }
-            });
+            }
             res.innerHTML = html || '<p class="text-center text-red-500">لا توجد طلبات لهذا اليوزر.</p>';
         } catch (e) {
-            res.innerHTML = '<p class="text-center text-red-500">خطأ في قراءة ملف البيانات.</p>';
+            res.innerHTML = '<p class="text-center text-red-500">خطأ في قراءة ملف البيانات. تأكد من تشغيل السيرفر.</p>';
         }
     }
 
