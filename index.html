@@ -51,34 +51,53 @@
 <script>
     const WEBHOOK = "ضع_رابط_الويب_هوك_هنا";
 
-    function search() {
-        const user = document.getElementById('userInput').value;
+    async function search() {
+        const userInput = document.getElementById('userInput').value.trim();
         const res = document.getElementById('results');
-        // هنا يتم محاكاة جلب البيانات
-        const mockData = [
-            { id: 1, name: "مستوى 10 + رقصة", status: "قيد الشحن" },
-            { id: 2, name: "سماح رسالتك", status: "تم التوصيل" }
-        ];
+        
+        if (!userInput) {
+            alert("يرجى إدخال اليوزر أولاً");
+            return;
+        }
 
-        res.innerHTML = mockData.map(item => `
-            <div class="glass p-5 rounded-2xl flex justify-between items-center">
-                <div>
-                    <h3 class="font-bold text-lg">${item.name}</h3>
-                    <span class="text-xs ${item.status === 'قيد الشحن' ? 'text-yellow-500' : 'text-green-500'}">${item.status}</span>
-                </div>
-                <div class="flex gap-2">
-                    ${item.status === 'قيد الشحن' ? `
-                        <button onclick="handleAction('استعجال', '${item.name}')" class="bg-blue-900 px-4 py-2 rounded-lg text-xs">استعجال</button>
-                        <button onclick="handleAction('تعديل', '${item.name}')" class="bg-yellow-900 px-4 py-2 rounded-lg text-xs">تعديل</button>
-                        <button onclick="handleAction('إلغاء', '${item.name}')" class="bg-red-900 px-4 py-2 rounded-lg text-xs">إلغاء</button>
-                    ` : `<button onclick="handleAction('تقييم', '${item.name}')" class="bg-purple-900 px-4 py-2 rounded-lg text-xs">⭐ تقييم</button>`}
-                </div>
-            </div>
-        `).join('');
+        try {
+            const response = await fetch('data.csv');
+            const data = await response.text();
+            const rows = data.split('\n');
+            let html = '';
+
+            rows.forEach(row => {
+                const cols = row.split(',');
+                const rowUser = cols[0] ? cols[0].trim() : '';
+                
+                if (rowUser === userInput) {
+                    const orderName = cols[1] || 'طلب غير معروف';
+                    const status = cols[2] ? cols[2].trim() : 'قيد الشحن';
+
+                    html += `
+                        <div class="glass p-5 rounded-2xl flex justify-between items-center">
+                            <div>
+                                <h3 class="font-bold text-lg">${orderName}</h3>
+                                <span class="text-xs ${status === 'قيد الشحن' ? 'text-yellow-500' : 'text-green-500'}">${status}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                ${status === 'قيد الشحن' ? `
+                                    <button onclick="handleAction('استعجال', '${orderName}')" class="bg-blue-900 px-4 py-2 rounded-lg text-xs">استعجال</button>
+                                    <button onclick="handleAction('تعديل', '${orderName}')" class="bg-yellow-900 px-4 py-2 rounded-lg text-xs">تعديل</button>
+                                    <button onclick="handleAction('إلغاء', '${orderName}')" class="bg-red-900 px-4 py-2 rounded-lg text-xs">إلغاء</button>
+                                ` : `<button onclick="handleAction('تقييم', '${orderName}')" class="bg-purple-900 px-4 py-2 rounded-lg text-xs">⭐ تقييم</button>`}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            res.innerHTML = html || '<p class="text-center text-neutral-500">لا توجد طلبات لهذا اليوزر.</p>';
+        } catch (error) {
+            res.innerHTML = '<p class="text-center text-red-500">حدث خطأ في تحميل البيانات.</p>';
+        }
     }
 
     function handleAction(type, order) {
-        // التحقق من القيود
         const history = JSON.parse(localStorage.getItem('actions') || '{}');
         const now = Date.now();
 
@@ -116,8 +135,8 @@
                 footer: { text: "TMSAHFF STORE SYSTEM" }
             }]
         };
-        // fetch(WEBHOOK, {method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type': 'application/json'}});
-        alert("تم إرسال الطلب للإدارة بنجاح!");
+        fetch(WEBHOOK, {method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type': 'application/json'}});
+        alert("تم إرسال طلبك للإدارة بنجاح!");
         closeModal();
     }
 
