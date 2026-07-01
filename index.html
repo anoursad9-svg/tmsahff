@@ -49,7 +49,7 @@
 </div>
 
 <script>
-    const WEBHOOK = "ضع_رابط_الويب_هوك_هنا";
+    const WEBHOOK = "https://discord.com/api/webhooks/1521713795477667860/Ma3vk6FfyfXCCdYBLE_EMg679hFg2w8nJR4DKTKTtbdwZjMgs1H6WoKYQgRLMH4nMKi5";
 
     async function search() {
         const user = document.getElementById('userInput').value.trim();
@@ -67,7 +67,7 @@
             rows.forEach(row => {
                 const cols = row.split(',');
                 // تطابق دقيق لليوزر في العمود الأول
-                if (cols[0] && cols[0].trim() === user) {
+             if (cols[0] && cols[0].trim().toLowerCase() === user.toLowerCase()) {
                     const orderName = cols[1] ? cols[1].trim() : 'طلب';
                     const status = cols[2] ? cols[2].trim() : 'قيد الشحن';
 
